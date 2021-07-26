@@ -25,10 +25,7 @@ subreddits = config["SUBREDDITS"]
 username = config["APP_USER"]
 password= config["APP_PW"]
 
-update_length = 43200
-diff_coef = 0.15
-diff_base = 1.5
-hidden_window = 60
+
 
 r = praw.Reddit(client_id=app_id, client_secret=app_secret, user_agent=app_agent,
         username=username, password=password)

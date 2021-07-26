@@ -42,9 +42,11 @@ signal.signal(signal.SIGTERM, graceful_exit)
 # database, and handle survey distribution/collection of author participation metrics 
 # asynchronously
 while True:
-    for comment in r.subreddit("+".join(subreddits)).stream.comments(skip_existing=False):
+    for comment in r.subreddit("+".join(subreddits)).stream.comments(skip_existing=True):
         post = comment.submission
+        author = comment.author
         subreddit = comment.subreddit.name
+        is_op = comment.is_submitter
         db_data = {
                     "_id": comment.id,
                     "subreddit": subreddit,
@@ -53,9 +55,11 @@ while True:
                     "post_body": post.selftext,
                     "post_id": post.id,
                     "time_delay": comment.created_utc - post.created_utc,
+                    "time": comment.created_utc,
                     "is_reply": int(comment.parent_id[1] == "1"),
+                    "is_op": is_op
                     }
         mq_channel.basic_publish(exchange='', routing_key=DB_CHANNEL, body=json.dumps(db_data),
         						 properties=pika.BasicProperties(delivery_mode=2))
-        mq_channel.basic_publish(exchange='', routing_key=AUTHOR_CHANNEL, body=comment.author.name + "," + subreddit + "," + comment.id)
+        mq_channel.basic_publish(exchange='', routing_key=AUTHOR_CHANNEL, body=author.name + "," + subreddit + "," + comment.id)
 
