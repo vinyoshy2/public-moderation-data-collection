@@ -45,11 +45,13 @@ while True:
     for comment in r.subreddit("+".join(subreddits)).stream.comments(skip_existing=True):
         post = comment.submission
         author = comment.author
-        subreddit = comment.subreddit.name
+        subreddit = comment.subreddit
         is_op = comment.is_submitter
         db_data = {
                     "_id": comment.id,
-                    "subreddit": subreddit,
+                    "flair": comment.author_flair_text,
+                    "subreddit": subreddit.name,
+                    "active_user_count": subreddit.active_user_count,
                     "text": comment.body,
                     "title": post.title,
                     "post_body": post.selftext,
@@ -59,6 +61,7 @@ while True:
                     "is_reply": int(comment.parent_id[1] == "1"),
                     "is_op": is_op
                     }
+        subreddit=subreddit.name
         mq_channel.basic_publish(exchange='', routing_key=DB_CHANNEL, body=json.dumps(db_data),
         						 properties=pika.BasicProperties(delivery_mode=2))
         mq_channel.basic_publish(exchange='', routing_key=AUTHOR_CHANNEL, body=author.name + "," + subreddit + "," + comment.id)

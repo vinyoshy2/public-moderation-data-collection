@@ -26,8 +26,8 @@ APP_AGENT = config["APP_AGENT"]
 USERNAME = config["APP_USER"]
 PASSWORD = config["APP_PW"]
 AUTHOR_CHANNEL = config["AUTHOR_CHANNEL"]
-SEEN_FILE = "seen_set.json"
-SAVE_FREQUENCY = 2
+SEEN_FILE = sys.argv[1]+"seen_set.json"
+SAVE_FREQUENCY = 20
 
 mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 mq_channel = mq_connection.channel()
@@ -38,13 +38,13 @@ r = praw.Reddit(client_id=APP_ID, client_secret=APP_SECRET, user_agent=APP_AGENT
 hash_fct = hashlib.sha256
 count = 0
 if os.path.exists(SEEN_FILE):
-    with open(sys.argv[1] + SEEN_FILE, "r") as f:
+    with open(SEEN_FILE, "r") as f:
         seen_users = json.load(f)
 else:
     seen_users = {}
 
 def graceful_exit(x,y):
-    with open(sys.argv[1] + SEEN_FILE, "w+") as f:
+    with open(SEEN_FILE, "w+") as f:
         f.write(json.dumps(seen_users, indent=4))
 
     mq_connection.close()
@@ -78,13 +78,13 @@ def handle_auth(ch, method, properties, body):
         if count % SAVE_FREQUENCY == 0:
             with open(SEEN_FILE, "w+") as f:
                 f.write(json.dumps(seen_users, indent=4))
-    if config["DISTRIBUTE_SURVEY"]:
-        print("distributing survey")
-        sub = list(r.info([data[1]]))
-        sub = sub[0].display_name
-        new_subject = SUBJECT.replace("r/[INSERT_SUBREDDIT_HERE]", sub)
-        new_message = MESSAGE.replace("r/[INSERT_SUBREDDIT_HERE]", sub)
-        participant = r.redditor(user).message(SUBJECT, new_message)
+#    if config["DISTRIBUTE_SURVEY"]:
+#        print("distributing survey")
+#        sub = list(r.info([data[1]]))
+#        sub = sub[0].display_name
+#        new_subject = SUBJECT.replace("r/[INSERT_SUBREDDIT_HERE]", sub)
+#        new_message = MESSAGE.replace("r/[INSERT_SUBREDDIT_HERE]", sub)
+#        participant = r.redditor(user).message(SUBJECT, new_message)
     return True
     
 mq_channel.basic_consume(queue=AUTHOR_CHANNEL, on_message_callback=handle_auth, auto_ack=True)
